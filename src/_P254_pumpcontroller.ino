@@ -24,6 +24,7 @@
 #define PLUGIN_ID_254     254                     // plugin id NOTE: seems to be limeted to unsigned int
 #define PLUGIN_NAME_254   "Regulator - Heating pump" // "Plugin Name" is what will be dislpayed in the selection list
 #define PLUGIN_VALUENAME1_254 "Output"            // The state of the pump controller output: off/on
+#define PLUGIN_VALUENAME2_254 "State"             // The state of the pump controller algorithm, see P254_control_state
 #define PLUGIN_254_DEBUG  true                    // set to true for extra log info in the debug
 
 //   PIN/port configuration is stored in the following:
@@ -32,9 +33,7 @@
 //   CONFIG_PIN3 - Indicator LED green color
 //   CONFIG_PORT - Indicator LED blue color (abuse port indicator as 4th GPIO indicator)
 #define P254_GPIO_RELAY     CONFIG_PIN1
-#define P254_GPIO_LED_RED   CONFIG_PIN2
-#define P254_GPIO_LED_GREEN CONFIG_PIN3
-#define P254_GPIO_LED_BLUE  CONFIG_PORT
+
 
 //   Custom configuration is stored in the following:
 //   PCONFIG(x)
@@ -74,31 +73,20 @@
 #define P254_OPMODE             PCONFIG(5)
 #define P254_GUID_OPMODE        "f7"
 
-// Timestamp for last control action. Must be stored persistant
-#define P254_TIMESTAMP          PCONFIG_ULONG(0)
-
-// Not intended for manipulation through GUI
-// Control state as calculated by the control algorithm
-#define P254_CONTROL_STATE      PCONFIG(6)
-
-// Not intended for manipulation through GUI
-// Control state as calculated by the control algorithm
-#define P254_REMOTE_STATE       PCONFIG(7)
-
 // Set of individual bits packed in a single PCONFIG
 // Use P254_getConfigBit() and P254_setConfigBit() to access the individual bits
 #define P254_FLAGS              PCONFIG(8)
 #define P254_INV_OUTPUT         0
 #define P254_GUID_INV_OUTPUT    "b0"
-#define P254_INV_LED_RED        1
-#define P254_GUID_INV_LED_RED   "b1"
-#define P254_INV_LED_GREEN      2
-#define P254_GUID_INV_LED_GREEN "b2"
-#define P254_INV_LED_BLUE       3
-#define P254_GUID_INV_LED_BLUE  "b3"
 
-// #define P254_OUTPUT_TYPE_INDEX  2
+// Positions in userVar array for the output values of this plugin
+// For now we only advertise output & state, remote and time are hidden and used as static storage
+#define P254_VALUE_OUTPUT       0
+#define P254_VALUE_STATE        1
+#define P254_VALUE_REMOTE       2
+#define P254_VALUE_TIME         3
 
+// Make time interpretation easier by converting millis to longer periods we want to check
 #define millis2seconds(x) ((x) / ((ulong)1000))
 #define millis2minutes(x) ((x) / ((ulong)1000 * 60))
 #define millis2hours(x)   ((x) / ((ulong)1000 * 60 * 24))
@@ -123,7 +111,7 @@ enum P254_control_state
   P254_STATE_FORCE    // Pump is forced on due to maximum interval time exceeded
 };
 
-// Prototype for the main evaluation of teh control algorithm
+// Prototype for the main evaluation of the control algorithm
 void P254_evaluate(struct EventStruct *event);
 
 boolean P254_getConfigBit(uint16_t config, int pos)
@@ -166,7 +154,7 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
                                                                                  // SENSOR_TYPE_STRING
       Device[deviceCount].Ports              = 0;                                // Port to use when device has multiple I/O pins  (N.B. not
                                                                                  // used much)
-      Device[deviceCount].ValueCount         = 1;                                // The number of output values of a plugin. The value
+      Device[deviceCount].ValueCount         = 2;                                // The number of output values of a plugin. The value
                                                                                  // should match the number of keys PLUGIN_VALUENAME1_xxx
       Device[deviceCount].OutputDataType     = Output_Data_type_t::Default;      // Subset of selectable output data types  (Default = no
                                                                                  // selection)
@@ -201,19 +189,17 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       // it allows to add a new row for each output variable of the plugin
       // For plugins able to choose output types, see P026_Sysinfo.ino.
       strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[0], PSTR(PLUGIN_VALUENAME1_254));
+      strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[1], PSTR(PLUGIN_VALUENAME2_254));
       break;
     }
 
     case PLUGIN_WEBFORM_SHOW_GPIO_DESCR:
     {
       const __FlashStringHelper *labels[] = {
-        F("RELAY"), F("RED"), F("GREEN"), F("BLUE")
+        F("RELAY")
       };
       int values[] = {
-        P254_GPIO_RELAY,
-        P254_GPIO_LED_RED,
-        P254_GPIO_LED_GREEN,
-        P254_GPIO_LED_BLUE
+        P254_GPIO_RELAY
       };
       constexpr size_t nrElements = NR_ELEMENTS(values);
 
@@ -254,11 +240,8 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
     case PLUGIN_SET_DEFAULTS:
     {
       // Set a default config here, which will be called when a plugin is assigned to a task.
-
+      int remote_value    = 0;                    // Control state received from remote command
       P254_GPIO_RELAY     = -1;                   // GPIO for relay output not assigned
-      P254_GPIO_LED_RED   = -1;                   // GPIO for red LED output not assigned
-      P254_GPIO_LED_GREEN = -1;                   // GPIO for green LED output not assigned
-      P254_GPIO_LED_BLUE  = -1;                   // GPIO for blue LED output not assigned
       P254_TEMP_TASK      = -1;                   // No temperature source assigned
       P254_TEMP_VAL       = -1;                   // No temperature source assigned
       P254_TEMP_LEVEL     = 25.0f;                // Switch pump on above 25 [deg C]
@@ -267,24 +250,25 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       P254_INTERVAL_TIME  = 24;                   // Pump shall run after 24 [hour] stand still
       P254_FORCE_TIME     = 5;                    // Forced circulation for 5 [min]
       P254_OPMODE         = P254_OPMODE_OFF;      // Don't touch unless selected by operator
-      P254_CONTROL_STATE  = (int)P254_STATE_IDLE; // Initalize control algorithm to IDLE
-      P254_REMOTE_STATE   = 0;                    // Remote control is OFF
-      P254_TIMESTAMP      = millis();             // Init time bookkeeping
+      UserVar.setFloat(event->TaskIndex, P254_VALUE_STATE, (float)P254_STATE_IDLE);
+      UserVar.setInt32(event->TaskIndex, P254_VALUE_REMOTE, remote_value);
+      UserVar.setUint32(event->TaskIndex, P254_VALUE_TIME, millis());
     }
 
     case PLUGIN_WEBFORM_LOAD:
     {
        #ifdef PLUGIN_254_DEBUG
       {
+        P254_control_state control_state = (P254_control_state)UserVar.getFloat(event->TaskIndex, P254_VALUE_STATE);
         // Add some debug information
         String msg = F("Debugging data: State= ");
-        msg += P254_printControlState(P254_CONTROL_STATE);
+        msg += P254_printControlState(control_state);
         msg += (F(", Pump= "));
-        msg += (P254_CONTROL_STATE) == P254_STATE_IDLE ? 0 : 1;
+        msg += (int)UserVar.getFloat(event->TaskIndex, P254_VALUE_OUTPUT) == 1 ? F("on") : F("off");
         msg += F(", Remote= ");
-        msg += P254_REMOTE_STATE;
+        msg += UserVar.getInt32(event->TaskIndex, P254_VALUE_REMOTE);
         msg += F(", Timer= ");
-        msg += (int)(millis2seconds(timePassedSince(P254_TIMESTAMP)));
+        msg += (int)(millis2seconds(timePassedSince(UserVar.getUint32(event->TaskIndex, P254_VALUE_TIME))));
         addFormNote(msg);
       }
       #endif
@@ -300,37 +284,7 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
                       F(P254_GUID_INV_OUTPUT),
                       P254_getConfigBit(P254_FLAGS, P254_INV_OUTPUT));
       }
-      addFormPinSelect(PinSelectPurpose::Generic_output,
-                       formatGpioName_output(F("LED RED")),
-                       F("taskdevicepin2"),
-                       P254_GPIO_LED_RED);
-      if (validGpio(P254_GPIO_LED_RED))
-      {
-        addFormCheckBox(F("Invert LED Red"),
-                      F(P254_GUID_INV_LED_RED),
-                      P254_getConfigBit(P254_FLAGS, P254_INV_LED_RED));
-      }
-      addFormPinSelect(PinSelectPurpose::Generic_output,
-                       formatGpioName_output(F("LED GREEN")),
-                       F("taskdevicepin3"),
-                       P254_GPIO_LED_GREEN);
-      if (validGpio(P254_GPIO_LED_GREEN))
-      {
-        addFormCheckBox(F("Invert LED Green"),
-                      F(P254_GUID_INV_LED_GREEN),
-                      P254_getConfigBit(P254_FLAGS, P254_INV_LED_GREEN));
-      }
-      addFormPinSelect(PinSelectPurpose::Generic_output,
-                       formatGpioName_output(F("LED BLUE")),
-                       F("taskdevicepin4"),
-                       P254_GPIO_LED_BLUE);
-      if (validGpio(P254_GPIO_LED_BLUE))
-      {
-        addFormCheckBox(F("Invert LED Blue"),
-                      F(P254_GUID_INV_LED_BLUE),
-                      P254_getConfigBit(P254_FLAGS, P254_INV_LED_BLUE));
-      }
-
+      
       //  Select task and value for input
       addRowLabel(F("Input Task"));
       addTaskSelect(F(P254_GUID_TEMP_TASK), P254_TEMP_TASK);
@@ -380,9 +334,6 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
 
       // after the form has been saved successfuly, set success and break
       P254_GPIO_RELAY     = getFormItemInt(F("taskdevicepin1"));
-      P254_GPIO_LED_RED   = getFormItemInt(F("taskdevicepin2"));
-      P254_GPIO_LED_GREEN = getFormItemInt(F("taskdevicepin3"));
-      P254_GPIO_LED_BLUE  = getFormItemInt(F("taskdevicepin4"));
 
       P254_TEMP_TASK = getFormItemInt(F(P254_GUID_TEMP_TASK));
       P254_TEMP_VAL  = getFormItemInt(F(P254_GUID_TEMP_VAL));
@@ -395,9 +346,6 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       P254_OPMODE        = getFormItemInt(F(P254_GUID_OPMODE));
       
       P254_FLAGS = P254_setConfigBit(P254_FLAGS, P254_INV_OUTPUT,    isFormItemChecked(F(P254_GUID_INV_OUTPUT)));
-      P254_FLAGS = P254_setConfigBit(P254_FLAGS, P254_INV_LED_RED,   isFormItemChecked(F(P254_GUID_INV_LED_RED)));
-      P254_FLAGS = P254_setConfigBit(P254_FLAGS, P254_INV_LED_GREEN, isFormItemChecked(F(P254_GUID_INV_LED_GREEN)));
-      P254_FLAGS = P254_setConfigBit(P254_FLAGS, P254_INV_LED_BLUE,  isFormItemChecked(F(P254_GUID_INV_LED_BLUE)));
 
       success = true;
       break;
@@ -417,10 +365,8 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       // It is executed according to the delay configured on the device configuration page, only once
 
       P254_evaluate(event);   // Get a fresh control state
+      // The function already updates the output values
 
-      // We return the status of the pump: switched on (1) or switched off (0)
-      // This is calculated from the control state as stored in P254_CONTROL_STATE
-      UserVar.setFloat(event->TaskIndex, 0, (float)(((P254_control_state)P254_CONTROL_STATE == P254_STATE_IDLE) ? 0 : 1));
       success = true;
       break;
     }
@@ -438,6 +384,7 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       //}
 
       // parse string to extract the command
+      int remote_value = UserVar.getInt32(event->TaskIndex, P254_VALUE_REMOTE);
       String command = parseString(string, 1); // already converted to lowercase
       String log = F("P254 write: ");
       if (equals(command, F("pumpcontrol"))) {
@@ -448,13 +395,13 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
           if (equals(value, F("on")))
           {
             log += F(" on");
-            P254_REMOTE_STATE = 1;
+            remote_value = 1;
             success = true;
           }
           else if (equals(value, F("off")))
           {
             log += F(" off");
-            P254_REMOTE_STATE = 0;
+            remote_value = 0;
             success = true;
           }
           else
@@ -467,7 +414,9 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
           log += F(" **no command**");
         }
       }
+      P254_evaluate(event);
       addLogMove(LOG_LEVEL_DEBUG, log);
+      UserVar.setInt32(event->TaskIndex, P254_VALUE_REMOTE, remote_value);
       break;
     }
 
@@ -516,21 +465,36 @@ String P254_printControlState(int state)
 void P254_evaluate(struct EventStruct *event)
 {
   float temperature                    = 0.0f; // Control temperature as read from the sensor task [deg C]
-  P254_control_state old_control_state = (P254_control_state)P254_CONTROL_STATE;
+  P254_control_state old_control_state = (P254_control_state) UserVar.getFloat(event->TaskIndex, P254_VALUE_STATE);
   P254_control_state new_control_state = old_control_state;
-  ulong timestamp                      = P254_TIMESTAMP;
-  bool  remote_state                   = (P254_REMOTE_STATE != 1); // Control input state from remote controller
-  bool  relay_output                   = false; // Calculated new relay output state
-  bool  led_red_output                 = false; // Calculated new red LED output state
-  bool  led_green_output               = false; // Calculated new green LED output state
-  bool  led_blue_output                = false; // Calculated new blue LED output state
+  ulong timestamp                      = UserVar.getUint32(event->TaskIndex, P254_VALUE_TIME);
+  bool  remote_state                   = UserVar.getInt32(event->TaskIndex, P254_VALUE_REMOTE) != 0; // Control input state from remote controller
+  bool  relay_output                   = UserVar.getFloat(event->TaskIndex, P254_VALUE_OUTPUT); // Calculated new relay output state
 
-  // Get the control temperature from the external task. If task does not exist use the default
+ // Get the control temperature from the external task. If task does not exist use the default
   if (validTaskIndex(P254_TEMP_TASK))
   {
     temperature = UserVar.getFloat(P254_TEMP_TASK, P254_TEMP_VAL); // [deg C]
   }
 
+ #ifdef PLUGIN_254_DEBUG
+    if (loglevelActiveFor(LOG_LEVEL_DEBUG)) {
+      String log = F("P254: Starting with State= ");
+      log += P254_printControlState(old_control_state);
+      log += F("; relay= ");
+      log += relay_output;
+      log += F("; timer= ");
+      log += timePassedSince(timestamp) / 1000;
+      log += F("; mode= ");
+      log += P254_OPMODE;
+      log += F("; temperature= ");
+      log += temperature;
+      log += F("; remote= ");
+      log += remote_state;
+      addLogMove(LOG_LEVEL_DEBUG, log);
+    }
+  #endif // ifdef P164_ENS160_DEBUG
+ 
   // Calculate the new control state based upon the selected operation mode
   // This also evaluates the gathered input values
   switch ((P254_opmode)(P254_OPMODE))
@@ -662,27 +626,15 @@ void P254_evaluate(struct EventStruct *event)
   {
     case P254_STATE_IDLE:
       relay_output     = false; // Relay output state
-      led_red_output   = false; // Red LED output state
-      led_green_output = true;  // Green LED output state
-      led_blue_output  = false; // Blue LED output state
       break;
     case P254_STATE_HEATING:
       relay_output     = true;  // Relay output state
-      led_red_output   = true;  // Red LED output state
-      led_green_output = false; // Green LED output state
-      led_blue_output  = false; // Blue LED output state
       break;
     case P254_STATE_EXTEND:
       relay_output     = true;  // Relay output state
-      led_red_output   = false; // Red LED output state
-      led_green_output = false; // Green LED output state
-      led_blue_output  = true;  // Blue LED output state
       break;
     case P254_STATE_FORCE:
       relay_output     = true;  // Relay output state
-      led_red_output   = false; // Red LED output state
-      led_green_output = false; // Green LED output state
-      led_blue_output  = true;  // Blue LED output state
       break;
   }
 
@@ -692,38 +644,14 @@ void P254_evaluate(struct EventStruct *event)
     pinMode(P254_GPIO_RELAY, OUTPUT);
     digitalWrite(P254_GPIO_RELAY, relay_output ? HIGH : LOW);
   }
-  if (validGpio(P254_GPIO_LED_RED))
-  {
-    led_red_output ^= P254_getConfigBit(P254_FLAGS, P254_INV_LED_RED); // Invert when selected
-    pinMode(P254_GPIO_LED_RED, OUTPUT);
-    digitalWrite(P254_GPIO_LED_RED, led_red_output ? HIGH : LOW);
-  }
-  if (validGpio(P254_GPIO_LED_GREEN))
-  {
-    led_green_output ^= P254_getConfigBit(P254_FLAGS, P254_INV_LED_GREEN); // Invert when selected
-    pinMode(P254_GPIO_LED_GREEN, OUTPUT);
-    digitalWrite(P254_GPIO_LED_GREEN, led_green_output ? HIGH : LOW);
-  }
-  if (validGpio(P254_GPIO_LED_BLUE))
-  {
-    led_blue_output ^= P254_getConfigBit(P254_FLAGS, P254_INV_LED_BLUE); // Invert when selected
-    pinMode(P254_GPIO_LED_BLUE, OUTPUT);
-    digitalWrite(P254_GPIO_LED_BLUE, led_blue_output ? HIGH : LOW);
-  }
-  
+   
   #ifdef PLUGIN_254_DEBUG
     if (loglevelActiveFor(LOG_LEVEL_DEBUG)) {
-      String log = F("P254: State= ");
+      String log = F("P254: Calculated State= ");
       log += P254_printControlState(new_control_state);
       log += F(" -> ");
       log += F("; relay= ");
       log += relay_output;
-      log += F("; red= ");
-      log += led_red_output;
-      log += F("; green= ");
-      log += led_green_output;
-      log += F("; blue= ");
-      log += led_blue_output;
       log += F("; timer= ");
       log += timePassedSince(timestamp) / 1000;
       log += F("; mode= ");
@@ -737,8 +665,9 @@ void P254_evaluate(struct EventStruct *event)
   #endif // ifdef P164_ENS160_DEBUG
 
   // Write back updated persistant control data
-  P254_CONTROL_STATE = new_control_state;
-  P254_TIMESTAMP     = timestamp;
+  UserVar.setFloat(event->TaskIndex, P254_VALUE_OUTPUT, (float)(((P254_control_state)new_control_state == P254_STATE_IDLE) ? 0 : 1));
+  UserVar.setFloat(event->TaskIndex, P254_VALUE_STATE, (float)new_control_state);
+  UserVar.setUint32(event->TaskIndex, P254_VALUE_TIME, timestamp);
 }
 
 #endif // USES_P254
