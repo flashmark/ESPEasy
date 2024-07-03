@@ -381,6 +381,7 @@ void ESPEasy_setup()
 
   Settings.UseRTOSMultitasking = false; // For now, disable it, we experience heap corruption.
 
+  #if FEATURE_ENABLE_BOOTLOOP_RECOVERY
   if ((RTC.bootFailedCount > 10) && (RTC.bootCounter > 10)) {
     uint8_t toDisable = RTC.bootFailedCount - 10;
     toDisable = disablePlugin(toDisable);
@@ -411,6 +412,8 @@ void ESPEasy_setup()
     }
 #endif
   }
+  #endif  // if FEATURE_ENABLE_BOOTLOOP_RECOVERY
+
   #if FEATURE_ETHERNET
 
   // This ensures, that changing WIFI OR ETHERNET MODE happens properly only after reboot. Changing without reboot would not be a good idea.

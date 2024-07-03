@@ -181,6 +181,10 @@ To create/register a plugin, you have to :
   #define FEATURE_NO_HTTP_CLIENT  0
 #endif
 
+// Bootloop recovery disables plugins, controllers and rules when ESPeasy detects a bootloop
+#ifndef FEATURE_ENABLE_BOOTLOOP_RECOVERY 
+  #define FEATURE_ENABLE_BOOTLOOP_RECOVERY 1 // Enabled by default
+#endif
 
 /******************************************************************************\
  * BUILD Configs **************************************************************

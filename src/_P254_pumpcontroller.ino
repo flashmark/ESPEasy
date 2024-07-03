@@ -21,11 +21,11 @@
 
 // Standard ESPEasy plugin definitions
 #define PLUGIN_254
-#define PLUGIN_ID_254     254                     // plugin id NOTE: seems to be limeted to unsigned int
+#define PLUGIN_ID_254     254                        // plugin id NOTE: seems to be limeted to unsigned int
 #define PLUGIN_NAME_254   "Regulator - Heating pump" // "Plugin Name" is what will be dislpayed in the selection list
-#define PLUGIN_VALUENAME1_254 "Output"            // The state of the pump controller output: off/on
-#define PLUGIN_VALUENAME2_254 "State"             // The state of the pump controller algorithm, see P254_control_state
-#define PLUGIN_254_DEBUG  true                    // set to true for extra log info in the debug
+#define PLUGIN_VALUENAME1_254 "Output"               // The state of the pump controller output: off/on
+#define PLUGIN_VALUENAME2_254 "State"                // The state of the pump controller algorithm, see P254_control_state
+#define PLUGIN_254_DEBUG  true                       // set to true for extra log info in the debug
 
 //   PIN/port configuration is stored in the following:
 //   CONFIG_PIN1 - Relay output, switching pump on/off
@@ -89,7 +89,7 @@
 // Make time interpretation easier by converting millis to longer periods we want to check
 #define millis2seconds(x) ((x) / ((ulong)1000))
 #define millis2minutes(x) ((x) / ((ulong)1000 * 60))
-#define millis2hours(x)   ((x) / ((ulong)1000 * 60 * 24))
+#define millis2hours(x) ((x) / ((ulong)1000 * 60 * 24))
 
 // Operation modes for the control algorithm
 enum P254_opmode
@@ -112,24 +112,26 @@ enum P254_control_state
 };
 
 // Prototype for the main evaluation of the control algorithm
-void P254_evaluate(struct EventStruct *event);
+void    P254_evaluate(struct EventStruct *event);
 
 boolean P254_getConfigBit(uint16_t config, int pos)
 {
   boolean res = ((config >> pos) & 0x0001) == 1;
+
   return res;
 }
 
 uint16_t P254_setConfigBit(uint16_t config, int pos, boolean val)
 {
   uint16_t mask = (0x0001 << pos);
-  if (val) 
+
+  if (val)
   {
     config |= mask;
   }
   else
   {
-    mask ^= 0xFFFF;
+    mask   ^= 0xFFFF;
     config &= mask;
   }
   return config;
@@ -147,32 +149,32 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
     {
       // This case defines the device characteristics, edit appropriately
 
-      Device[++deviceCount].Number           = PLUGIN_ID_254;                    // Plugin ID number.   (PLUGIN_ID_xxx)
-      Device[deviceCount].Type               = DEVICE_TYPE_CUSTOM0;              // How the device is connected. e.g. DEVICE_TYPE_SINGLE =>
-                                                                                 // connected through 1 datapin
-      Device[deviceCount].VType              = Sensor_VType::SENSOR_TYPE_SWITCH; // Type of value the plugin will return. e.g.
-                                                                                 // SENSOR_TYPE_STRING
-      Device[deviceCount].Ports              = 0;                                // Port to use when device has multiple I/O pins  (N.B. not
-                                                                                 // used much)
-      Device[deviceCount].ValueCount         = 2;                                // The number of output values of a plugin. The value
-                                                                                 // should match the number of keys PLUGIN_VALUENAME1_xxx
-      Device[deviceCount].OutputDataType     = Output_Data_type_t::Default;      // Subset of selectable output data types  (Default = no
-                                                                                 // selection)
-      Device[deviceCount].PullUpOption       = false;                            // Allow to set internal pull-up resistors.
-      Device[deviceCount].InverseLogicOption = false;                            // Allow to invert the boolean state (e.g. a switch)
-      Device[deviceCount].FormulaOption      = false;                            // Allow to enter a formula to convert values during read.
-                                                                                 // (not possible with Custom enabled)
-      Device[deviceCount].Custom             = false;
-      Device[deviceCount].SendDataOption     = true;                             // Allow to send data to a controller.
-      Device[deviceCount].GlobalSyncOption   = true;                             // No longer used. Was used for ESPeasy values sync between
-                                                                                 // nodes
-      Device[deviceCount].TimerOption        = true;                             // Allow to set the "Interval" timer for the plugin.
-      Device[deviceCount].TimerOptional      = false;                            // When taskdevice timer is not set and not optional, use
-                                                                                 // default "Interval" delay (Settings.Delay)
-      Device[deviceCount].DecimalsOnly       = false;                            // Allow to set the number of decimals (otherwise treated a
-                                                                                 // 0 decimals)
-      Device[deviceCount].SendDataOption     = true;
-      Device[deviceCount].PluginStats        = true;
+      Device[++deviceCount].Number = PLUGIN_ID_254;                     // Plugin ID number.   (PLUGIN_ID_xxx)
+      Device[deviceCount].Type     = DEVICE_TYPE_CUSTOM0;               // How the device is connected. e.g. DEVICE_TYPE_SINGLE =>
+                                                                        // connected through 1 datapin
+      Device[deviceCount].VType = Sensor_VType::SENSOR_TYPE_SWITCH;     // Type of value the plugin will return. e.g.
+                                                                        // SENSOR_TYPE_STRING
+      Device[deviceCount].Ports = 0;                                    // Port to use when device has multiple I/O pins  (N.B. not
+                                                                        // used much)
+      Device[deviceCount].ValueCount = 2;                               // The number of output values of a plugin. The value
+                                                                        // should match the number of keys PLUGIN_VALUENAME1_xxx
+      Device[deviceCount].OutputDataType = Output_Data_type_t::Default; // Subset of selectable output data types  (Default = no
+                                                                        // selection)
+      Device[deviceCount].PullUpOption       = false;                   // Allow to set internal pull-up resistors.
+      Device[deviceCount].InverseLogicOption = false;                   // Allow to invert the boolean state (e.g. a switch)
+      Device[deviceCount].FormulaOption      = false;                   // Allow to enter a formula to convert values during read.
+                                                                        // (not possible with Custom enabled)
+      Device[deviceCount].Custom           = false;
+      Device[deviceCount].SendDataOption   = true;                      // Allow to send data to a controller.
+      Device[deviceCount].GlobalSyncOption = true;                      // No longer used. Was used for ESPeasy values sync between
+                                                                        // nodes
+      Device[deviceCount].TimerOption   = true;                         // Allow to set the "Interval" timer for the plugin.
+      Device[deviceCount].TimerOptional = false;                        // When taskdevice timer is not set and not optional, use
+                                                                        // default "Interval" delay (Settings.Delay)
+      Device[deviceCount].DecimalsOnly = false;                         // Allow to set the number of decimals (otherwise treated a
+                                                                        // 0 decimals)
+      Device[deviceCount].SendDataOption = true;
+      Device[deviceCount].PluginStats    = true;
       break;
     }
 
@@ -240,16 +242,16 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
     case PLUGIN_SET_DEFAULTS:
     {
       // Set a default config here, which will be called when a plugin is assigned to a task.
-      int remote_value    = 0;                    // Control state received from remote command
-      P254_GPIO_RELAY     = -1;                   // GPIO for relay output not assigned
-      P254_TEMP_TASK      = -1;                   // No temperature source assigned
-      P254_TEMP_VAL       = -1;                   // No temperature source assigned
-      P254_TEMP_LEVEL     = 25.0f;                // Switch pump on above 25 [deg C]
-      P254_TEMP_HYST      = 5.0f;                 // Switch off hysteresis 5 [deg C] below switch on value
-      P254_MIN_TIME       = 30;                   // Once switched on pump should run at least 30 [min]
-      P254_INTERVAL_TIME  = 24;                   // Pump shall run after 24 [hour] stand still
-      P254_FORCE_TIME     = 5;                    // Forced circulation for 5 [min]
-      P254_OPMODE         = P254_OPMODE_OFF;      // Don't touch unless selected by operator
+      int remote_value = 0;                 // Control state received from remote command
+      P254_GPIO_RELAY    = -1;              // GPIO for relay output not assigned
+      P254_TEMP_TASK     = -1;              // No temperature source assigned
+      P254_TEMP_VAL      = -1;              // No temperature source assigned
+      P254_TEMP_LEVEL    = 25.0f;           // Switch pump on above 25 [deg C]
+      P254_TEMP_HYST     = 5.0f;            // Switch off hysteresis 5 [deg C] below switch on value
+      P254_MIN_TIME      = 30;              // Once switched on pump should run at least 30 [min]
+      P254_INTERVAL_TIME = 24;              // Pump shall run after 24 [hour] stand still
+      P254_FORCE_TIME    = 5;               // Forced circulation for 5 [min]
+      P254_OPMODE        = P254_OPMODE_OFF; // Don't touch unless selected by operator
       UserVar.setFloat(event->TaskIndex, P254_VALUE_STATE, (float)P254_STATE_IDLE);
       UserVar.setInt32(event->TaskIndex, P254_VALUE_REMOTE, remote_value);
       UserVar.setUint32(event->TaskIndex, P254_VALUE_TIME, millis());
@@ -260,6 +262,7 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
        #ifdef PLUGIN_254_DEBUG
       {
         P254_control_state control_state = (P254_control_state)UserVar.getFloat(event->TaskIndex, P254_VALUE_STATE);
+
         // Add some debug information
         String msg = F("Debugging data: State= ");
         msg += P254_printControlState(control_state);
@@ -271,20 +274,21 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
         msg += (int)(millis2seconds(timePassedSince(UserVar.getUint32(event->TaskIndex, P254_VALUE_TIME))));
         addFormNote(msg);
       }
-      #endif
+      #endif // ifdef PLUGIN_254_DEBUG
 
       // We load/save the TaskDevicePins ourselves.
       addFormPinSelect(PinSelectPurpose::Generic_output,
                        formatGpioName_output(F("RELAY")),
                        F("taskdevicepin1"),
                        P254_GPIO_RELAY);
+
       if (validGpio(P254_GPIO_RELAY))
       {
         addFormCheckBox(F("Invert Output"),
-                      F(P254_GUID_INV_OUTPUT),
-                      P254_getConfigBit(P254_FLAGS, P254_INV_OUTPUT));
+                        F(P254_GUID_INV_OUTPUT),
+                        P254_getConfigBit(P254_FLAGS, P254_INV_OUTPUT));
       }
-      
+
       //  Select task and value for input
       addRowLabel(F("Input Task"));
       addTaskSelect(F(P254_GUID_TEMP_TASK), P254_TEMP_TASK);
@@ -297,8 +301,8 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       }
 
       // FormSelector with all operation mode options
-      String options[P254_OPMODE_SIZE] = {F("Off"), F("Standby"), F("On"), F("Control"), F("Remote")};
-      int optionValues[P254_OPMODE_SIZE] = {P254_OPMODE_OFF, P254_OPMODE_STANDBY, P254_OPMODE_ON, P254_OPMODE_TEMP, P254_OPMODE_REMOTE};
+      String options[P254_OPMODE_SIZE]      = { F("Off"), F("Standby"), F("On"), F("Control"), F("Remote") };
+      int    optionValues[P254_OPMODE_SIZE] = { P254_OPMODE_OFF, P254_OPMODE_STANDBY, P254_OPMODE_ON, P254_OPMODE_TEMP, P254_OPMODE_REMOTE };
       addFormSelector(F("Control mode"), F(P254_GUID_OPMODE), P254_OPMODE_SIZE, options, optionValues, P254_OPMODE);
 
       // Temperature control switch on level [deg C]
@@ -318,7 +322,7 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       addUnit(F("hour"));
 
       // Interval circulation time (forced circulation) [min]
-      addFormNumericBox(F("Forced circulation time"), F(P254_GUID_FORCE_TIME),    P254_FORCE_TIME,    1);
+      addFormNumericBox(F("Forced circulation time"), F(P254_GUID_FORCE_TIME), P254_FORCE_TIME, 1);
       addUnit(F("minute"));
       success = true;
       break;
@@ -333,7 +337,7 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       // If custom tasksettings need to be stored, then here is the place to add that
 
       // after the form has been saved successfuly, set success and break
-      P254_GPIO_RELAY     = getFormItemInt(F("taskdevicepin1"));
+      P254_GPIO_RELAY = getFormItemInt(F("taskdevicepin1"));
 
       P254_TEMP_TASK = getFormItemInt(F(P254_GUID_TEMP_TASK));
       P254_TEMP_VAL  = getFormItemInt(F(P254_GUID_TEMP_VAL));
@@ -344,7 +348,7 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       P254_INTERVAL_TIME = getFormItemInt(F(P254_GUID_INTERVAL_TIME));
       P254_FORCE_TIME    = getFormItemInt(F(P254_GUID_FORCE_TIME));
       P254_OPMODE        = getFormItemInt(F(P254_GUID_OPMODE));
-      
+
       P254_FLAGS = P254_setConfigBit(P254_FLAGS, P254_INV_OUTPUT,    isFormItemChecked(F(P254_GUID_INV_OUTPUT)));
 
       success = true;
@@ -364,7 +368,7 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       // code to be executed to read data
       // It is executed according to the delay configured on the device configuration page, only once
 
-      P254_evaluate(event);   // Get a fresh control state
+      P254_evaluate(event); // Get a fresh control state
       // The function already updates the output values
 
       success = true;
@@ -378,40 +382,43 @@ boolean Plugin_254(uint8_t function, struct EventStruct *event, String& string)
       // As an example, http://192.168.1.12//control?cmd=dothis
       // implies that there exists the comamnd "dothis"
 
-      //if (false)    // plugin_not_initialised
-      //{
+      // if (false)    // plugin_not_initialised
+      // {
       //  break;
-      //}
+      // }
 
       // parse string to extract the command
       int remote_value = UserVar.getInt32(event->TaskIndex, P254_VALUE_REMOTE);
-      String command = parseString(string, 1); // already converted to lowercase
-      String log = F("P254 write: ");
+      String command   = parseString(string, 1); // already converted to lowercase
+      String log       = F("P254 write: ");
+
       if (equals(command, F("pumpcontrol"))) {
         String subcmd = parseString(string, 2);
+
         if (equals(subcmd, F("remote"))) {
           log += F(" pumpcontrol");
           String value = parseString(string, 3);
+
           if (equals(value, F("on")))
           {
-            log += F(" on");
+            log         += F(" on");
             remote_value = 1;
-            success = true;
+            success      = true;
           }
           else if (equals(value, F("off")))
           {
-            log += F(" off");
+            log         += F(" off");
             remote_value = 0;
-            success = true;
+            success      = true;
           }
           else
           {
-            log += F(" **no value**");
+            log += F(" **no valid value**");
           }
         }
-        else 
+        else
         {
-          log += F(" **no command**");
+          log += F(" **no valid command**");
         }
       }
       P254_evaluate(event);
@@ -457,50 +464,54 @@ String P254_printControlState(int state)
     default:                  return F("***ERROR***"); break;
   }
 }
+
 #endif // ifdef PLUGIN_254_DEBUG
 
 // Execute the control algorithm
 // Evaluation shall not be dependent on when or how often this function is called
-// All stateful infromation is stored in the plugin context environment accessible through variable event
+// All stateful information is stored in the plugin context environment accessible through variable event
 void P254_evaluate(struct EventStruct *event)
 {
   float temperature                    = 0.0f; // Control temperature as read from the sensor task [deg C]
-  P254_control_state old_control_state = (P254_control_state) UserVar.getFloat(event->TaskIndex, P254_VALUE_STATE);
+  P254_control_state old_control_state = (P254_control_state)UserVar.getFloat(event->TaskIndex, P254_VALUE_STATE);
   P254_control_state new_control_state = old_control_state;
   ulong timestamp                      = UserVar.getUint32(event->TaskIndex, P254_VALUE_TIME);
-  bool  remote_state                   = UserVar.getInt32(event->TaskIndex, P254_VALUE_REMOTE) != 0; // Control input state from remote controller
-  bool  relay_output                   = UserVar.getFloat(event->TaskIndex, P254_VALUE_OUTPUT); // Calculated new relay output state
+  bool  remote_state                   = UserVar.getInt32(event->TaskIndex, P254_VALUE_REMOTE) != 0; // Control input state from remote
+                                                                                                     // controller
+  bool  relay_output                   = UserVar.getFloat(event->TaskIndex, P254_VALUE_OUTPUT);      // Calculated new relay output state
 
- // Get the control temperature from the external task. If task does not exist use the default
+  // Get the control temperature from the external task. If task does not exist use the default
   if (validTaskIndex(P254_TEMP_TASK))
   {
     temperature = UserVar.getFloat(P254_TEMP_TASK, P254_TEMP_VAL); // [deg C]
   }
 
  #ifdef PLUGIN_254_DEBUG
-    if (loglevelActiveFor(LOG_LEVEL_DEBUG)) {
-      String log = F("P254: Starting with State= ");
-      log += P254_printControlState(old_control_state);
-      log += F("; relay= ");
-      log += relay_output;
-      log += F("; timer= ");
-      log += timePassedSince(timestamp) / 1000;
-      log += F("; mode= ");
-      log += P254_OPMODE;
-      log += F("; temperature= ");
-      log += temperature;
-      log += F("; remote= ");
-      log += remote_state;
-      addLogMove(LOG_LEVEL_DEBUG, log);
-    }
+
+  if (loglevelActiveFor(LOG_LEVEL_DEBUG)) {
+    String log = F("P254: Starting with State= ");
+    log += P254_printControlState(old_control_state);
+    log += F("; relay= ");
+    log += relay_output;
+    log += F("; timer= ");
+    log += timePassedSince(timestamp) / 1000;
+    log += F("; mode= ");
+    log += P254_OPMODE;
+    log += F("; temperature= ");
+    log += temperature;
+    log += F("; remote= ");
+    log += remote_state;
+    addLogMove(LOG_LEVEL_DEBUG, log);
+  }
   #endif // ifdef P164_ENS160_DEBUG
- 
+
   // Calculate the new control state based upon the selected operation mode
   // This also evaluates the gathered input values
   switch ((P254_opmode)(P254_OPMODE))
   {
     // Control is switched off completely
     case P254_OPMODE_OFF:
+
       if (old_control_state != P254_STATE_IDLE)
       {
         timestamp         = millis();
@@ -510,6 +521,7 @@ void P254_evaluate(struct EventStruct *event)
 
     // Control is always on
     case P254_OPMODE_ON:
+
       if (old_control_state == P254_STATE_IDLE)
       {
         timestamp         = millis();
@@ -524,15 +536,16 @@ void P254_evaluate(struct EventStruct *event)
 
     // Control is switched off with maintnenance interval enabled
     case P254_OPMODE_STANDBY:
-      if (old_control_state == P254_STATE_IDLE)   // Pump was idling
+
+      if (old_control_state == P254_STATE_IDLE) // Pump was idling
       {
-        if (millis2hours(timePassedSince(timestamp)) >= P254_INTERVAL_TIME)
+        if ((millis2hours(timePassedSince(timestamp)) >= (ulong)P254_INTERVAL_TIME) && ((ulong)P254_FORCE_TIME >= 1))
         {
           timestamp         = millis();
           new_control_state = P254_STATE_FORCE;
         }
       }
-      else if (millis2minutes(timePassedSince(timestamp)) < P254_FORCE_TIME)
+      else if (millis2minutes(timePassedSince(timestamp)) < (ulong)P254_FORCE_TIME)
       {
         // Pump was running shorter than the forced on time
         new_control_state = P254_STATE_FORCE; // Keep running in state FORCE
@@ -540,7 +553,7 @@ void P254_evaluate(struct EventStruct *event)
       else
       {
         timestamp         = millis();
-        new_control_state = P254_STATE_IDLE;    // Switch off
+        new_control_state = P254_STATE_IDLE; // Switch off
       }
       break;
 
@@ -550,6 +563,7 @@ void P254_evaluate(struct EventStruct *event)
     // Continue with shared handling, break deliberately not used
     // ----------------------------------------------------------
     case P254_OPMODE_REMOTE:
+
       switch (old_control_state)
       {
         // Pump is idle
@@ -561,7 +575,7 @@ void P254_evaluate(struct EventStruct *event)
             timestamp         = millis();
             new_control_state = P254_STATE_HEATING;
           }
-          else if (millis2hours(timePassedSince(timestamp)) >= P254_INTERVAL_TIME)
+          else if (millis2hours(timePassedSince(timestamp)) >= (ulong)P254_INTERVAL_TIME)
           {
             // Idling for a long period, forced maintenance run
             timestamp         = millis();
@@ -571,9 +585,10 @@ void P254_evaluate(struct EventStruct *event)
 
         // Pump is on due to heating request
         case P254_STATE_HEATING:
+
           if (temperature < (P254_TEMP_LEVEL - P254_TEMP_HYST))
           {
-            if (millis2minutes(timePassedSince(timestamp)) >= P254_MIN_TIME)
+            if (millis2minutes(timePassedSince(timestamp)) >= (ulong)P254_MIN_TIME)
             {
               timestamp         = millis();
               new_control_state = P254_STATE_IDLE;
@@ -586,13 +601,14 @@ void P254_evaluate(struct EventStruct *event)
           }
           break;
 
-        // Pump is on to extend a started cycle till minimum time exceeded
+        // Pump is on to extend a started cycle untill minimum time exceeded
         case P254_STATE_EXTEND:
+
           if ((temperature > P254_TEMP_LEVEL))
           {
             new_control_state = P254_STATE_HEATING;
           }
-          else if (millis2minutes(timePassedSince(timestamp)) >= P254_MIN_TIME)
+          else if (millis2minutes(timePassedSince(timestamp)) >= (ulong)P254_MIN_TIME)
           {
             timestamp         = millis();
             new_control_state = P254_STATE_IDLE;
@@ -601,12 +617,13 @@ void P254_evaluate(struct EventStruct *event)
 
         // Pump was forced on when operation mode switched to temperature control
         case P254_STATE_FORCE:
+
           if ((temperature > P254_TEMP_LEVEL))
           {
             // Keep timestamp from moment pump was swiched on
             new_control_state = P254_STATE_HEATING;
           }
-          else if (millis2minutes(timePassedSince(timestamp)) >= P254_FORCE_TIME)
+          else if (millis2minutes(timePassedSince(timestamp)) >= (ulong)P254_FORCE_TIME)
           {
             timestamp         = millis();
             new_control_state = P254_STATE_IDLE;
@@ -625,16 +642,19 @@ void P254_evaluate(struct EventStruct *event)
   switch (new_control_state)
   {
     case P254_STATE_IDLE:
-      relay_output     = false; // Relay output state
+      relay_output = false; // Relay output state
       break;
     case P254_STATE_HEATING:
-      relay_output     = true;  // Relay output state
+      relay_output = true;  // Relay output state
       break;
     case P254_STATE_EXTEND:
-      relay_output     = true;  // Relay output state
+      relay_output = true;  // Relay output state
       break;
     case P254_STATE_FORCE:
-      relay_output     = true;  // Relay output state
+      relay_output = true;  // Relay output state
+      break;
+    default:  // unexpected state, switch pump off
+      relay_output = false; // Relay output state
       break;
   }
 
@@ -644,29 +664,30 @@ void P254_evaluate(struct EventStruct *event)
     pinMode(P254_GPIO_RELAY, OUTPUT);
     digitalWrite(P254_GPIO_RELAY, relay_output ? HIGH : LOW);
   }
-   
+
   #ifdef PLUGIN_254_DEBUG
-    if (loglevelActiveFor(LOG_LEVEL_DEBUG)) {
-      String log = F("P254: Calculated State= ");
-      log += P254_printControlState(new_control_state);
-      log += F(" -> ");
-      log += F("; relay= ");
-      log += relay_output;
-      log += F("; timer= ");
-      log += timePassedSince(timestamp) / 1000;
-      log += F("; mode= ");
-      log += P254_OPMODE;
-      log += F("; temperature= ");
-      log += temperature;
-      log += F("; remote= ");
-      log += remote_state;
-      addLogMove(LOG_LEVEL_DEBUG, log);
-    }
+
+  if (loglevelActiveFor(LOG_LEVEL_DEBUG)) {
+    String log = F("P254: Calculated State= ");
+    log += P254_printControlState(new_control_state);
+    log += F(" -> ");
+    log += F("; relay= ");
+    log += relay_output;
+    log += F("; timer= ");
+    log += timePassedSince(timestamp) / 1000;
+    log += F("; mode= ");
+    log += P254_OPMODE;
+    log += F("; temperature= ");
+    log += temperature;
+    log += F("; remote= ");
+    log += remote_state;
+    addLogMove(LOG_LEVEL_DEBUG, log);
+  }
   #endif // ifdef P164_ENS160_DEBUG
 
   // Write back updated persistant control data
   UserVar.setFloat(event->TaskIndex, P254_VALUE_OUTPUT, (float)(((P254_control_state)new_control_state == P254_STATE_IDLE) ? 0 : 1));
-  UserVar.setFloat(event->TaskIndex, P254_VALUE_STATE, (float)new_control_state);
+  UserVar.setFloat(event->TaskIndex, P254_VALUE_STATE,  (float)new_control_state);
   UserVar.setUint32(event->TaskIndex, P254_VALUE_TIME, timestamp);
 }
 

@@ -28,6 +28,8 @@
 #define FEATURE_THINGSPEAK_EVENT        1  // generate an event when requesting last value of a field in thingspeak via SendToHTTP(e.g. sendToHTTP,api.thingspeak.com,80,/channels/1667332/fields/5/last)
 // #define FEATURE_SD                   1  // Enable SD card support
 // #define FEATURE_DOWNLOAD             1  // Enable downloading a file from an url
+// Disable default bootloop recovery when processor might encounter reoccurring brown-out situations
+#define FEATURE_ENABLE_BOOTLOOP_RECOVERY 1
 
 #ifdef BUILD_GIT
 # undef BUILD_GIT
